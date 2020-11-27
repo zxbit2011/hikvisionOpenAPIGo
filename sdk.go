@@ -27,11 +27,26 @@ type HKConfig struct {
 	IsHttps bool   //是否使用HTTPS协议
 }
 
+// 返回结果
+type Result struct {
+	Code string      `json:"code"`
+	Msg  string      `json:"msg"`
+	Data interface{} `json:"data"`
+}
+
+// 返回值data
+type Data struct {
+	Total    int                      `json:"total"`
+	PageSize int                      `json:"pageSize"`
+	PageNo   int                      `json:"pageNo"`
+	List     []map[string]interface{} `json:"list"`
+}
+
 // @title		HTTP Post请求
 // @url			HTTP接口Url		string				 HTTP接口Url，不带协议和端口，如/artemis/api/resource/v1/org/advance/orgList
 // @body		请求参数			map[string]string
 // @return		请求结果			参数类型
-func (hk HKConfig) HttpPost(url string, body map[string]string, timeout int) (result []byte, err error) {
+func (hk HKConfig) HttpPost(url string, body map[string]string, timeout int) (result Result, err error) {
 	var header = make(map[string]string)
 	bodyJson := MustJsonString(body)
 	hk.initRequest(header, url, bodyJson, true)
@@ -75,7 +90,12 @@ func (hk HKConfig) HttpPost(url string, body map[string]string, timeout int) (re
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusOK {
-		result, err = ioutil.ReadAll(resp.Body)
+		var resBody []byte
+		resBody, err = ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return
+		}
+		err = json.Unmarshal(resBody, &result)
 	} else if resp.StatusCode == http.StatusFound || resp.StatusCode == http.StatusMovedPermanently {
 		reqUrl := resp.Header.Get("Location")
 		panic(fmt.Errorf("HttpPost Response StatusCode：%d，Location：%s", resp.StatusCode, reqUrl))
@@ -113,7 +133,7 @@ func (hk HKConfig) initRequest(header map[string]string, url, body string, isPos
 
 // computeContentMd5 计算content-md5
 func computeContentMd5(body string) string {
-	return base64.StdEncoding.EncodeToString([]byte( Md5(body)))
+	return base64.StdEncoding.EncodeToString([]byte(Md5(body)))
 }
 
 // computeForHMACSHA256 计算HMACSHA265

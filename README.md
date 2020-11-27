@@ -2,11 +2,9 @@
 > 海康威视OpenAPI安全认证库 - Golang版本实现
 # 官网
 
-接口调用认证：
-https://open.hikvision.com/docs/7d0beeded66543999bff7bc2f91414d4
+接口调用认证：[文档说明](https://open.hikvision.com/docs/7d0beeded66543999bff7bc2f91414d4)
 
-其他语言版本：
-https://open.hikvision.com/download/5c67f1e2f05948198c909700?type=10
+其他语言版本：[下载链接](https://open.hikvision.com/download/5c67f1e2f05948198c909700?type=10)
 # 快速使用
 ````
 > go get github.com/zxbit2011/hikvisionOpenAPIGo
