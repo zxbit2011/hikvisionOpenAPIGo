@@ -29,7 +29,8 @@ func TestSDK(t *testing.T) {
 		t.Fatal(err)
 		return
 	}
-	t.Log("OK", string(result))
+	resJson, err := json.Marshal(result)
+	t.Log("OK", string(resJson))
 }
 ```` 
 # 输出结果
