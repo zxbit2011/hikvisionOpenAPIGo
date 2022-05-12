@@ -14,6 +14,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -48,17 +49,21 @@ type Data struct {
 // @return		请求结果			参数类型
 func (hk HKConfig) HttpPost(url string, body map[string]string, timeout int) (result Result, err error) {
 	var header = make(map[string]string)
-	bodyJson := MustJsonString(body)
-	hk.initRequest(header, url, bodyJson, true)
+	bodyJson, err := json.Marshal(body)
+	if err != nil {
+		return result, err
+	}
+	err = hk.initRequest(header, url, string(bodyJson), true)
+	if err != nil {
+		return Result{}, err
+	}
 	var sb []string
 	if hk.IsHttps {
 		sb = append(sb, "https://")
 	} else {
 		sb = append(sb, "http://")
 	}
-	sb = append(sb, hk.Ip)
-	sb = append(sb, ":")
-	sb = append(sb, fmt.Sprintf("%d", hk.Port))
+	sb = append(sb, fmt.Sprintf("%s:%d", hk.Ip, hk.Port))
 	sb = append(sb, url)
 
 	client := &http.Client{}
@@ -72,7 +77,7 @@ func (hk HKConfig) HttpPost(url string, body map[string]string, timeout int) (re
 		}
 		client.Transport = tr
 	}
-	req, err := http.NewRequest("POST", strings.Join(sb, ""), bytes.NewReader([]byte(bodyJson)))
+	req, err := http.NewRequest("POST", strings.Join(sb, ""), bytes.NewReader(bodyJson))
 	if err != nil {
 		return
 	}
@@ -106,14 +111,18 @@ func (hk HKConfig) HttpPost(url string, body map[string]string, timeout int) (re
 }
 
 // initRequest 初始化请求头
-func (hk HKConfig) initRequest(header map[string]string, url, body string, isPost bool) {
+func (hk HKConfig) initRequest(header map[string]string, url, body string, isPost bool) error {
 	header["Accept"] = "application/json"
 	header["Content-Type"] = "application/json"
 	if isPost {
-		header["content-md5"] = computeContentMd5(body)
+		var err error
+		header["content-md5"], err = computeContentMd5(body)
+		if err != nil {
+			return err
+		}
 	}
-	header["x-ca-timestamp"] = MustString(time.Now().UnixNano() / 1e6)
-	uid, _ := uuid.NewV4()
+	header["x-ca-timestamp"] = strconv.FormatInt(time.Now().UnixMilli(), 10)
+	uid := uuid.NewV4()
 	header["x-ca-nonce"] = uid.String()
 	header["x-ca-key"] = hk.AppKey
 
@@ -125,15 +134,21 @@ func (hk HKConfig) initRequest(header map[string]string, url, body string, isPos
 	}
 	signedStr, err := computeForHMACSHA256(strToSign, hk.Secret)
 	if err != nil {
-		println(err.Error())
-		return
+		return err
 	}
 	header["x-ca-signature"] = signedStr
+	return nil
 }
 
 // computeContentMd5 计算content-md5
-func computeContentMd5(body string) string {
-	return base64.StdEncoding.EncodeToString([]byte(Md5(body)))
+func computeContentMd5(body string) (string, error) {
+	h := md5.New()
+	_, err := h.Write([]byte(body))
+	if err != nil {
+		return "", err
+	}
+	md5Str := hex.EncodeToString(h.Sum(nil))
+	return base64.StdEncoding.EncodeToString([]byte(md5Str)), nil
 }
 
 // computeForHMACSHA256 计算HMACSHA265
@@ -205,29 +220,4 @@ func buildSignHeader(header map[string]string) string {
 
 	header["x-ca-signature-headers"] = strings.Join(sbSignHeader, "")
 	return strings.Join(sb, "")
-}
-
-func MustJson(i interface{}) []byte {
-	if d, err := json.Marshal(i); err == nil {
-		return d
-	} else {
-		panic(err)
-	}
-}
-
-func MustJsonString(i interface{}) string {
-	return string(MustJson(i))
-}
-
-func MustString(value interface{}) string {
-	if value == nil {
-		return ""
-	}
-	return fmt.Sprintf("%v", value)
-}
-
-func Md5(str string) string {
-	h := md5.New()
-	h.Write([]byte(str))
-	return hex.EncodeToString(h.Sum(nil))
 }
