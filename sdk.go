@@ -10,7 +10,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	uuid "github.com/satori/go.uuid"
+	"github.com/gofrs/uuid"
 	"io/ioutil"
 	"net/http"
 	"sort"
@@ -122,7 +122,10 @@ func (hk HKConfig) initRequest(header map[string]string, url, body string, isPos
 		}
 	}
 	header["x-ca-timestamp"] = strconv.FormatInt(time.Now().UnixMilli(), 10)
-	uid := uuid.NewV4()
+	uid, err := uuid.NewV4()
+	if err != nil {
+		return err
+	}
 	header["x-ca-nonce"] = uid.String()
 	header["x-ca-key"] = hk.AppKey
 
