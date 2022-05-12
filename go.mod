@@ -1,6 +1,6 @@
 module github.com/zxbit2011/hikvisionOpenAPIGo
 
-go 1.18
+go 1.16
 
 require github.com/satori/go.uuid v1.2.0
 
