@@ -103,7 +103,7 @@ func (hk HKConfig) HttpPost(url string, body map[string]string, timeout int) (re
 		err = json.Unmarshal(resBody, &result)
 	} else if resp.StatusCode == http.StatusFound || resp.StatusCode == http.StatusMovedPermanently {
 		reqUrl := resp.Header.Get("Location")
-		panic(fmt.Errorf("HttpPost Response StatusCode：%d，Location：%s", resp.StatusCode, reqUrl))
+		err = fmt.Errorf("HttpPost Response StatusCode：%d，Location：%s", resp.StatusCode, reqUrl)
 	} else {
 		err = fmt.Errorf("HttpPost Response StatusCode：%d", resp.StatusCode)
 	}
